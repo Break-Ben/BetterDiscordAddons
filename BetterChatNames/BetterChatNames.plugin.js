@@ -5,6 +5,8 @@
  * @version 1.0.0
  * @authorLink https://github.com/Ben-Break
  * @website https://github.com/Ben-Break
+ * @source https://github.com/Ben-Break/BetterDiscordPlugins/tree/main/BetterChatNames
+ * @updateUrl https://raw.githubusercontent.com/Ben-Break/BetterDiscordPlugins/main/BetterChatNames/BetterChatNames.plugin.js
  */
 
 Patcher = BdApi.Patcher
