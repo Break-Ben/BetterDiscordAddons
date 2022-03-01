@@ -1,2 +1,2 @@
-# BetterDiscordPlugins
-My BetterDiscord plugins (probably only ever 1)
+# BetterDiscordAddons
+My BetterDiscord plugins and themes
