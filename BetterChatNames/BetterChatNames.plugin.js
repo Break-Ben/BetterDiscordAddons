@@ -33,11 +33,9 @@ module.exports = class BetterChatNames {
         // Title
         Patcher.after("BetterChatNames", Title, "default", 
             (_, args, data)=>{
-                console.log(data)
                 if(data?.props?.children?.props?.children?.[0]?.props?.children?.[1]?.props?.children?.[1]?.props?.children) {
                     data.props.children.props.children[0].props.children[1].props.children[1].props.children = this.patchText(data.props.children.props.children[0].props.children[1].props.children[1].props.children)
                 }
-                
             }
         )
         
@@ -53,7 +51,7 @@ module.exports = class BetterChatNames {
         // Placeholder text
         Patcher.after("BetterChatNames", Placeholder, "render", 
             (_, args, data)=>{
-                if(data?.props?.children?.[1]?.props?.children?.[0]){
+                if(data?._owner?.key == "enabled"){
                     data.props.children[1].props.children[0].props.children = this.patchText(data.props.children[1].props.children[0].props.children)
                 }
             }
