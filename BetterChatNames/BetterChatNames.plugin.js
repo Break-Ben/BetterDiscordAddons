@@ -1,7 +1,7 @@
 /**
  * @name BetterChatNames
  * @author Break
- * @description Improves chat names by capitalising names and removing dashes and underlines
+ * @description Improves chat names by capitalising them, and removing dashes/underlines
  * @version 1.0.1
  * @authorLink https://github.com/Ben-Break
  * @website https://github.com/Ben-Break/BetterDiscordAddons
