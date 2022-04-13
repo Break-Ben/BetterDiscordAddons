@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them, and removing dashes + underlines
- * @version 1.2.0
+ * @version 1.3.0
  * @authorLink https://github.com/Ben-Break
  * @website https://github.com/Ben-Break/BetterDiscordAddons
  * @source https://github.com/Ben-Break/BetterDiscordAddons/tree/main/BetterChatNames
@@ -21,14 +21,16 @@ const CapitalRegex = new RegExp(/(^\w{1})|(\W\w{1})/g)
 const Channels = BdApi.findModule(m=>m?.default?.displayName === "ChannelItem")
 const Title = BdApi.findModule(m=>m?.default?.displayName === "HeaderBar")
 const Mention = BdApi.findModule(m=>m?.default?.displayName === "Mention")
-const Placeholder = BdApi.findModuleByDisplayName("ChannelEditorContainer")
+const Placeholder = BdApi.findModuleByDisplayName("ChannelEditorContainer").prototype
 const Dropdown1 = BdApi.findModuleByProps("SingleSelect")
 const Dropdown2 = BdApi.findModuleByProps("FormContextProvider")
 const Welcome1 = BdApi.findModule(m=>m?.default?.displayName === "TextChannelEmptyMessage")
 const Welcome2 = BdApi.findModule(m=>m?.default?.displayName === "RoleRequiredEmptyMessage")
-const ChatSettings = BdApi.findModuleByDisplayName("SettingsView")
-const MentionAutocomplete = BdApi.findModule(m=>m.default.displayName === "Autocomplete")
-const Search = BdApi.findModuleByProps("SearchPopoutComponent")
+const Inbox = BdApi.findModule(m=>m?.default?.displayName === "RecentsChannelHeader")
+const ChannelsFollowed = BdApi.findModule(m=>m?.default?.displayName === "IntegrationsChannelFollowing")
+const ChatSettings = BdApi.findModuleByDisplayName("SettingsView").prototype
+const MentionAutocomplete = BdApi.findModule(m=>m.default.displayName === "Autocomplete").default.Channel.prototype
+const Search = BdApi.findModuleByProps("SearchPopoutComponent").GroupData.FILTER_IN
 const QuickSwitcher = BdApi.findModule(m=>m.Channel.displayName === "Channel")
 
 module.exports = class BetterChatNames {
@@ -46,25 +48,44 @@ module.exports = class BetterChatNames {
         // Title
         Patcher.after("BetterChatNames", Title, "default", 
             (_, args, data)=>{
-                if(data?.props?.children?.props?.children?.[0]?.props?.children?.[1]?.props?.children?.[1]?.props?.children) {
-                    data.props.children.props.children[0].props.children[1].props.children[1].props.children = this.patchText(data.props.children.props.children[0].props.children[1].props.children[1].props.children)
+                const TitleBar = data?.props?.children?.props?.children?.[0]?.props?.children
+                if(TitleBar?.[1]?.props?.guild) { // If in a server
+
+                    if(TitleBar[2]) { // If in normal chat
+                        data.props.children.props.children[0].props.children[0].props.children[1].props.children = this.patchText(TitleBar[0].props.children[1].props.children)
+                    }
+                    else { // If in a thread
+                        data.props.children.props.children[0].props.children[0].props.children[0].props.children[1].props.children = this.patchText(TitleBar[0].props.children[0].props.children[1].props.children)
+                    }
+                }
+                else if(TitleBar?.[2]?.props?.guild) { // If in a server and 'Hide Channels' is installed 
+
+                    if(TitleBar[3]) { // If in normal chat
+                        data.props.children.props.children[0].props.children[1].props.children[1].props.children = this.patchText(TitleBar[1].props.children[1].props.children)
+                    }
+                    else { // If in a thread
+                        data.props.children.props.children[0].props.children[0].props.children[0].props.children[1].props.children = this.patchText(TitleBar[0].props.children[0].props.children[1].props.children)
+                    }
                 }
             }
         )
-        
+
         // Chat mention
         Patcher.after("BetterChatNames", Mention, "default", 
             (_, args, data)=>{
-                if(data?.props?.children?.[0]){
+                if(data?.props?.role == "link"){ // In chat (and not role mention)
                     data.props.children[1][0] = this.patchText(data.props.children[1][0])
+                }
+                else if(typeof(data.props.children[1]) == "string"){ // In text area
+                    data.props.children[1] = this.patchText(data.props.children[1])
                 }
             }
         )
 
         // Message placeholder
-        Patcher.after("BetterChatNames", Placeholder.prototype, "render",
+        Patcher.after("BetterChatNames", Placeholder, "render",
             (_, args, data)=>{
-                if(data?.props?.children?.[2].props?.channel?.placeholder && data?.props?.children?.[2].props?.channel?.guild_id){
+                if(data?.props?.children?.[2].props?.placeholder && data?.props?.children?.[2].props?.channel?.guild_id){ // If has placeholder and is in server
                     data.props.children[2].props.placeholder = this.patchText(data.props.children[2].props.placeholder)
                 }
             }
@@ -75,7 +96,9 @@ module.exports = class BetterChatNames {
             (_, args, data)=>{
                 if(data?.props?.options?.[1]?.channel || data?.props?.options?.[0]?.label?.startsWith("#")) {
                     data.props.options.forEach(e => {
-                        e.label = this.patchText(e.label)
+                        if(e.label) {
+                            e.label = this.patchText(e.label)
+                        }
                     });
                 }
             }
@@ -89,6 +112,11 @@ module.exports = class BetterChatNames {
                         e.label = this.patchText(e.label)
                     });
                 }
+                else if(data?.props?.children?.[1]?.props?.children?.[0]?.props?.options) {
+                    data.props.children[1].props.children[0].props.options.forEach(e => {
+                        e.label = this.patchText(e.label)
+                    });
+                }
             }
         )
 
@@ -97,9 +125,9 @@ module.exports = class BetterChatNames {
             (_, args, data)=>{
                 if(data?.props?.children?.[1]?.props?.children.includes("#")){
                     var str = data.props.children[1].props.children
-                    data.props.children[1].props.children = str.substring(0, str.indexOf("#")) + this.patchText(str.substring(str.indexOf("#")))
+                    data.props.children[1].props.children = str.substring(0, str.indexOf("#")) + this.patchText(str.substring(str.indexOf("#"))) // Header
                     str = data.props.children[2].props.children[0]
-                    data.props.children[2].props.children[0] = str.substring(0, str.indexOf("#")) + this.patchText(str.substring(str.indexOf("#")))
+                    data.props.children[2].props.children[0] = str.substring(0, str.indexOf("#")) + this.patchText(str.substring(str.indexOf("#"))) // Description
                 }
             }
         )
@@ -109,15 +137,33 @@ module.exports = class BetterChatNames {
             (_, args, data)=>{
                 if(data?.props?.children?.[1]?.props?.children.includes("#")){
                     var str = data.props.children[1].props.children
-                    data.props.children[1].props.children = str.substring(0, str.indexOf("#")) + this.patchText(str.substring(str.indexOf("#")))
+                    data.props.children[1].props.children = str.substring(0, str.indexOf("#")) + this.patchText(str.substring(str.indexOf("#"))) // Header
                     str = data.props.children[2].props.children[0]
-                    data.props.children[2].props.children[0] = str.substring(0, str.indexOf("#")) + this.patchText(str.substring(str.indexOf("#")))
+                    data.props.children[2].props.children[0] = str.substring(0, str.indexOf("#")) + this.patchText(str.substring(str.indexOf("#"))) // Description
                 }
             }
         )
 
+        // Inbox
+        Patcher.after("BetterChatNames", Inbox, "default",
+            (_, args, data)=>{
+                if(data?.props?.children?.props?.children?.[0]?.props?.channel) {
+                    data.props.children.props.children[0].props.channel.name = this.patchText(data.props.children.props.children[0].props.channel.name)
+                }
+            }
+        )
+
+        // Channels Followed
+        Patcher.after("BetterChatNames", ChannelsFollowed, "default",
+            (_, args, data)=>{
+                data.props.children[2].props.webhooks.forEach(e => {
+                    e.source_channel.name = this.patchText(e.source_channel.name)
+                });
+            }
+        )
+
         // Chat settings title
-        Patcher.after("BetterChatNames", ChatSettings.prototype, "renderSidebar", 
+        Patcher.after("BetterChatNames", ChatSettings, "renderSidebar", 
             (_, args, data)=>{
                 if(data?.props?.children?.[0].props?.children?.props){
                     data.props.children[0].props.children.props.children[1] = this.patchText(data.props.children[0].props.children.props.children[1])
@@ -128,16 +174,16 @@ module.exports = class BetterChatNames {
         if(PatchAutocomplete) {
 
         // Mention Autocomplete
-        Patcher.after("BetterChatNames", MentionAutocomplete.default.Channel.prototype, "renderContent", 
+        Patcher.after("BetterChatNames", MentionAutocomplete, "renderContent", 
             (_, args, data)=>{
                 if(data) {
                     data.props.children[1].props.children.props.children = this.patchText(data.props.children[1].props.children.props.children)
                 } 
             }
         )
-        
+
         // Search Autocomplete
-        Patcher.after("BetterChatNames", Search.GroupData.FILTER_IN, "component", 
+        Patcher.after("BetterChatNames", Search, "component", 
             (_, args, data)=>{
                 if(data) {
                     Patcher.after("BetterChatNames(Searchbar)", data.props, "renderResult", 
