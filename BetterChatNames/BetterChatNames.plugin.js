@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them, and removing dashes & underlines
- * @version 1.3.1
+ * @version 1.3.2
  * @authorLink https://github.com/Ben-Break
  * @website https://github.com/Ben-Break/BetterDiscordAddons
  * @source https://github.com/Ben-Break/BetterDiscordAddons/tree/main/BetterChatNames
@@ -21,6 +21,7 @@ const DashRegex = new RegExp("-|_", "g")
 const CapitalRegex = new RegExp(/(^\w{1})|(\W\w{1})/g)
 const {findModule, findModuleByProps, findModuleByDisplayName, Patcher} = BdApi
 const {after} = Patcher
+const TransitionTo = findModuleByProps("transitionTo").transitionTo
 
 const Channels = findModule(m=>m?.default?.displayName === "ChannelItem")
 const Title = findModule(m=>m?.default?.displayName === "HeaderBar")
@@ -35,7 +36,8 @@ const ChannelsFollowed = findModule(m=>m?.default?.displayName === "Integrations
 const ChatSettings = findModuleByDisplayName("SettingsView").prototype
 const MentionAutocomplete = findModule(m=>m.default.displayName === "Autocomplete").default.Channel.prototype
 const Search = findModuleByProps("SearchPopoutComponent").GroupData.FILTER_IN
-const QuickSwitcher = findModule(m=>m.Channel.displayName === "Channel")
+const QuickSwitcher = findModule(m=>m.Channel.displayName === "Channel").Channel.prototype
+
 
 module.exports = class BetterChatNames {
     patchNames() {
@@ -76,11 +78,13 @@ module.exports = class BetterChatNames {
         // Chat mention
         after(PluginName, Mention, "default", 
             (_, args, data)=>{
-                if(data?.props?.role == "link"){ //In chat (and not role mention)
-                    data.props.children[1][0] = this.patchText(data.props.children[1][0])
-                }
-                else if(typeof(data.props.children[1]) == "string"){ //In text area
-                    data.props.children[1] = this.patchText(data.props.children[1])
+                if(data?.props?.children?.[0]){ //If a chat mention
+                    if(data.props.role == "link") { //If in chat
+                        data.props.children[1][0] = this.patchText(data.props.children[1][0])
+                    }
+                    else { //If in text area
+                        data.props.children[1] = this.patchText(data.props.children[1])
+                    }
                 }
             }
         )
@@ -199,7 +203,7 @@ module.exports = class BetterChatNames {
         )
 
         // Quick Switcher Autocomplete
-        after(PluginName, QuickSwitcher.Channel.prototype, "renderName",
+        after(PluginName, QuickSwitcher, "renderName",
             (_, args, data)=>{
                 if(data) {
                     data.props.children[0].props.children = this.patchText(data.props.children[0].props.children)
@@ -211,9 +215,10 @@ module.exports = class BetterChatNames {
     }
 
     // Document title (seen in places such as hovering over app on windows)
-    onSwitch() {
-        if(findModuleByProps("getLastSelectedGuildId").getGuildId()) {
-            document.title = this.patchText(document.title)
+    patchTitle() {
+        const patchedTitle = this.patchText(document.title)
+        if(findModuleByProps("getLastSelectedGuildId").getGuildId() && document.title != patchedTitle) { //If in server and title not already patched (to avoid an infinite cycle)
+            document.title = patchedTitle
         }
     }
 
@@ -224,17 +229,19 @@ module.exports = class BetterChatNames {
     }
 
     reloadServer() {
-        const transitionTo = findModuleByProps("transitionTo").transitionTo
         const currentServer = findModuleByProps("getLastSelectedGuildId").getGuildId()
         const currentChannel = findModuleByProps("getLastSelectedChannelId").getChannelId()
 
         if(currentServer) { //If not in DM
-            transitionTo(`/channels/@me`)
-            setImmediate(()=>transitionTo(`/channels/${currentServer}/${currentChannel}`))
+            TransitionTo(`/channels/@me`)
+            setImmediate(()=>TransitionTo(`/channels/${currentServer}/${currentChannel}`))
         }
     }
 
-    start() { this.patchNames() }
+    start() {
+        new MutationObserver(_ => { this.patchTitle(); }).observe(document.querySelector('title'), {childList: true})
+        this.patchNames()
+    }
 
     stop() {
         Patcher.unpatchAll(PluginName)
