@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them, and removing dashes & underlines
- * @version 1.3.2
+ * @version 1.3.3
  * @authorLink https://github.com/Ben-Break
  * @website https://github.com/Ben-Break/BetterDiscordAddons
  * @source https://github.com/Ben-Break/BetterDiscordAddons/tree/main/BetterChatNames
@@ -12,9 +12,7 @@
 const Capitalise = true
 const RemoveDashes = true
 const PatchAutocomplete = true
-/*                         ↑↑ 
-Toggles changing the names of autocomplete e.g. mention and search (because you still need to type the dashes/underscores)
-*/
+// ↑ ↑ ↑ ↑ Settings ↑ ↑ ↑ ↑
 
 const PluginName = "BetterChatNames"
 const DashRegex = new RegExp("-|_", "g")
@@ -53,23 +51,23 @@ module.exports = class BetterChatNames {
         // Title
         after(PluginName, Title, "default", 
             (_, args, data)=>{
-                const TitleBar = data?.props?.children?.props?.children?.[0]?.props?.children
+                const TitleBar = data?.props?.children?.props?.children?.[0]?.props?.children[1]
                 if(TitleBar?.[1]?.props?.guild) { //If in a server
 
                     if(TitleBar[2]) { //If in normal chat
-                        data.props.children.props.children[0].props.children[0].props.children[1].props.children = this.patchText(TitleBar[0].props.children[1].props.children)
+                        data.props.children.props.children[0].props.children[1][0].props.children[1].props.children = this.patchText(TitleBar[0].props.children[1].props.children)
                     }
                     else { //If in a thread
-                        data.props.children.props.children[0].props.children[0].props.children[0].props.children[1].props.children = this.patchText(TitleBar[0].props.children[0].props.children[1].props.children)
+                        data.props.children.props.children[0].props.children[1][0].props.children[0].props.children[1].props.children = this.patchText(TitleBar[0].props.children[0].props.children[1].props.children)
                     }
                 }
                 else if(TitleBar?.[2]?.props?.guild) { //If in a server and 'Hide Channels' is installed 
 
                     if(TitleBar[3]) { //If in normal chat
-                        data.props.children.props.children[0].props.children[1].props.children[1].props.children = this.patchText(TitleBar[1].props.children[1].props.children)
+                        data.props.children.props.children[0].props.children[1][1].props.children[1].props.children = this.patchText(TitleBar[1].props.children[1].props.children)
                     }
                     else { //If in a thread
-                        data.props.children.props.children[0].props.children[0].props.children[0].props.children[1].props.children = this.patchText(TitleBar[0].props.children[0].props.children[1].props.children)
+                        data.props.children.props.children[0].props.children[1][1].props.children[0].props.children[1].props.children = this.patchText(TitleBar[1].props.children[0].props.children[1].props.children)
                     }
                 }
             }
@@ -91,8 +89,8 @@ module.exports = class BetterChatNames {
 
         // Message placeholder
         after(PluginName, Placeholder, "render",
-            (_, args, data)=>{
-                if(data?.props?.children?.[2].props?.placeholder && data?.props?.children?.[2].props?.channel?.guild_id){ //If has placeholder and is in server
+            (_, args, data)=>{ 
+                if(data?.props?.children?.[2].props?.channel?.guild_id && !data?.props?.children?.[2]?.props?.disabled){ //If in a server and can message
                     data.props.children[2].props.placeholder = this.patchText(data.props.children[2].props.placeholder)
                 }
             }
