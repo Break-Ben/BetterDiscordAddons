@@ -2,11 +2,11 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them, and removing dashes & underlines
- * @version 1.3.3
- * @authorLink https://github.com/Ben-Break
- * @website https://github.com/Ben-Break/BetterDiscordAddons
- * @source https://github.com/Ben-Break/BetterDiscordAddons/tree/main/BetterChatNames
- * @updateUrl https://raw.githubusercontent.com/Ben-Break/BetterDiscordAddons/main/BetterChatNames/BetterChatNames.plugin.js
+ * @version 1.3.4
+ * @authorLink https://github.com/Break-Ben
+ * @website https://github.com/Break-Ben/BetterDiscordAddons
+ * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
+ * @updateUrl https://raw.githubusercontent.com/Break-Ben/BetterDiscordAddons/main/BetterChatNames/BetterChatNames.plugin.js
  */
 
 const Capitalise = true
@@ -16,7 +16,7 @@ const PatchAutocomplete = true
 
 const PluginName = "BetterChatNames"
 const DashRegex = new RegExp("-|_", "g")
-const CapitalRegex = new RegExp(/(^\w{1})|(\W\w{1})/g)
+const CapitalRegex = new RegExp(/(^\w)|([^a-zA-ZÀ-ɏḀ-ỿ]\w)/g)
 const {findModule, findModuleByProps, findModuleByDisplayName, Patcher} = BdApi
 const {after} = Patcher
 const TransitionTo = findModuleByProps("transitionTo").transitionTo
@@ -31,7 +31,7 @@ const Welcome1 = findModule(m=>m?.default?.displayName === "TextChannelEmptyMess
 const Welcome2 = findModule(m=>m?.default?.displayName === "RoleRequiredEmptyMessage")
 const Inbox = findModule(m=>m?.default?.displayName === "RecentsChannelHeader")
 const ChannelsFollowed = findModule(m=>m?.default?.displayName === "IntegrationsChannelFollowing")
-const ChatSettings = findModuleByDisplayName("SettingsView").prototype
+const ChatSettings = findModuleByDisplayName("TabBar").prototype
 const MentionAutocomplete = findModule(m=>m.default.displayName === "Autocomplete").default.Channel.prototype
 const Search = findModuleByProps("SearchPopoutComponent").GroupData.FILTER_IN
 const QuickSwitcher = findModule(m=>m.Channel.displayName === "Channel").Channel.prototype
@@ -168,9 +168,9 @@ module.exports = class BetterChatNames {
         )
 
         // Chat settings title
-        after(PluginName, ChatSettings, "renderSidebar", 
+        after(PluginName, ChatSettings, "render", 
             (_, args, data)=>{
-                if(data?.props?.children?.[0].props?.children?.props){
+                if(data?.props?.children?.[0]?.props?.children?.props){
                     data.props.children[0].props.children.props.children[1] = this.patchText(data.props.children[0].props.children.props.children[1])
                 }
             }
