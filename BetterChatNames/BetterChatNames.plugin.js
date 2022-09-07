@@ -16,7 +16,7 @@ const PatchAutocomplete = true
 
 const PluginName = "BetterChatNames"
 const DashRegex = new RegExp("-|_", "g")
-const CapitalRegex = new RegExp(/(^\w)|([^a-zA-ZÀ-ɏḀ-ỿ]\w)/g)
+const CapitalRegex = new RegExp(/(^\w)|([^a-zA-ZÀ-ɏḀ-ỿ’]\w)/g)
 const {findModule, findModuleByProps, findModuleByDisplayName, Patcher} = BdApi
 const {after} = Patcher
 const TransitionTo = findModuleByProps("transitionTo").transitionTo
