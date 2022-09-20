@@ -1,13 +1,13 @@
 /**
  * @name BetterChatNames
  * @author Break
- * @description Improves chat names by automatically capitalising them, and removing dashes & underlines
- * @version 1.3.6
+ * @description Improves chat names by automatically capitalising them, and removing dashes & underscores
+ * @version 1.3.7
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
  * @updateUrl https://raw.githubusercontent.com/Break-Ben/BetterDiscordAddons/main/BetterChatNames/BetterChatNames.plugin.js
- */
+*/
 
 const Capitalise = true
 const RemoveDashes = true
@@ -52,23 +52,13 @@ module.exports = class BetterChatNames {
         after(PluginName, Title, "default", 
             (_, args, data)=>{
                 const TitleBar = data?.props?.children?.props?.children?.[0]?.props?.children[1]
-                if(TitleBar?.[1]?.props?.guild) { //If in a server
-
-                    if(TitleBar[2]) { //If in normal chat
-                        data.props.children.props.children[0].props.children[1][0].props.children[1].props.children = this.patchText(TitleBar[0].props.children[1].props.children)
-                    }
-                    else { //If in a thread
-                        data.props.children.props.children[0].props.children[1][0].props.children[0].props.children[1].props.children = this.patchText(TitleBar[0].props.children[0].props.children[1].props.children)
-                    }
+                if(TitleBar?.[1]?.props?.guild) {var n = 0} //If in a server
+                else if(TitleBar?.[2]?.props?.guild) {var n = 1} //If in a server with 'Hide Channels' installed
+                if(TitleBar[n+1].props.channel?.type == 11) { //If in a thread
+                    data.props.children.props.children[0].props.children[1][n].props.children[0].props.children[1].props.children = this.patchText(TitleBar[n].props.children[0].props.children[1].props.children)
                 }
-                else if(TitleBar?.[2]?.props?.guild) { //If in a server and 'Hide Channels' is installed 
-
-                    if(TitleBar[3]) { //If in normal chat
-                        data.props.children.props.children[0].props.children[1][1].props.children[1].props.children = this.patchText(TitleBar[1].props.children[1].props.children)
-                    }
-                    else { //If in a thread
-                        data.props.children.props.children[0].props.children[1][1].props.children[0].props.children[1].props.children = this.patchText(TitleBar[1].props.children[0].props.children[1].props.children)
-                    }
+                else { //If in chat/forum
+                    data.props.children.props.children[0].props.children[1][n].props.children[1].props.children = this.patchText(TitleBar[n].props.children[1].props.children)
                 }
             }
         )
@@ -215,10 +205,10 @@ module.exports = class BetterChatNames {
         this.reloadServer()
     }
 
-    // Document title (seen in places such as hovering over app on windows)
+    // App title
     patchTitle() {
         const patchedTitle = this.patchText(document.title)
-        if(findModuleByProps("getLastSelectedGuildId").getGuildId() && document.title != patchedTitle) { //If in server and title not already patched (to avoid an infinite cycle)
+        if(findModuleByProps("getLastSelectedGuildId").getGuildId() && document.title != patchedTitle) { //If in server and title not already patched
             document.title = patchedTitle
         }
     }
@@ -233,7 +223,7 @@ module.exports = class BetterChatNames {
         const currentServer = findModuleByProps("getLastSelectedGuildId").getGuildId()
         const currentChannel = findModuleByProps("getLastSelectedChannelId").getChannelId()
 
-        if(currentServer) { //If not in DM
+        if(currentServer) { //If not in a DM
             TransitionTo(`/channels/@me`)
             setImmediate(()=>TransitionTo(`/channels/${currentServer}/${currentChannel}`))
         }
