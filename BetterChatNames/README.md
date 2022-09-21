@@ -1,5 +1,5 @@
 # BetterChatNames
-A BetterDiscord plugin that improves text chat names by automatically **capitalising** them and **removing dashes & underlines**
+A BetterDiscord plugin that improves text chat names by automatically **capitalising** them and **removing dashes & underscores**
 
 ![thumbnail2](https://user-images.githubusercontent.com/80194912/156743281-a50caf18-32a5-487f-9b66-1e06f92a6249.png)
 
