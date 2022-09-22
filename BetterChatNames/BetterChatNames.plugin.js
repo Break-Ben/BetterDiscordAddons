@@ -54,7 +54,7 @@ module.exports = class BetterChatNames {
                 const TitleBar = data?.props?.children?.props?.children?.[0]?.props?.children[1]
                 if(TitleBar?.[1]?.props?.guild) {var n = 0} //If in a server
                 else if(TitleBar?.[2]?.props?.guild) {var n = 1} //If in a server with 'Hide Channels' installed
-                if(n) {
+                if(n != null) {
                     if(TitleBar[n+1].props.channel?.type == 11) { //If in a thread
                         data.props.children.props.children[0].props.children[1][n].props.children[0].props.children[1].props.children = this.patchText(TitleBar[n].props.children[0].props.children[1].props.children)
                     }
