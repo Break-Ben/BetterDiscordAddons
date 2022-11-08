@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them, and removing dashes & underscores
- * @version 1.4.0
+ * @version 1.4.1
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
@@ -13,16 +13,19 @@ const Capitalise = true
 const RemoveDashes = true
 // ↑ ↑ ↑ ↑ Settings ↑ ↑ ↑ ↑
 
+var titleObserver
 const DashRegex = new RegExp("-|_", "g")
 const CapitalRegex = new RegExp(/(^\w)|([^a-zA-ZÀ-ɏḀ-ỿ'’]\w)/g)
 const {Webpack, Patcher} = new BdApi("BetterChatNames")
 const {getModule, Filters} = Webpack
 const {byProps} = Filters
-const TransitionTo = getModule(m => m.toString().includes('"transitionTo - Transitioning to "'), {searchExports: true})
+const CurrentServer = getModule(byProps("getLastSelectedGuildId"))
+const CurrentChannel = getModule(byProps("getLastSelectedChannelId"))
+const TransitionTo = getModule(m => m?.toString?.().includes('"transitionTo - Transitioning to "'), {searchExports: true})
 
-const Channels = getModule(m => Object.values(m).some(v => v.toString().includes(".SELECTED")))
-const Title = getModule(m => Object.values(m).some(v => v.toString().includes(".toolbar")))
-const Mention = getModule(m => Object.values(m).some(v => v.toString().includes(".iconMention")))
+const Channels = getModule(m => Object.values(m).some(v => v?.toString?.().includes(".SELECTED")))
+const Title = getModule(m => Object.values(m).some(v => v?.toString?.().includes(".toolbar")))
+const Mention = getModule(m => Object.values(m).some(v => v?.toString?.().includes(".iconMention")))
 
 module.exports = class BetterChatNames {
     patchNames() {
@@ -65,14 +68,12 @@ module.exports = class BetterChatNames {
                 }
             }
         )
-
-        this.reloadServer()
     }
 
     // App title
     patchTitle() {
         const patchedTitle = this.patchText(document.title)
-        if(getModule(byProps("getLastSelectedGuildId")).getGuildId() && document.title != patchedTitle) { //If in server and title not already patched
+        if(CurrentServer?.getGuildId() && document.title != patchedTitle) { //If in server and title not already patched
             document.title = patchedTitle
         }
     }
@@ -84,21 +85,23 @@ module.exports = class BetterChatNames {
     }
 
     reloadServer() {
-        const currentServer = getModule(byProps("getLastSelectedGuildId"))?.getGuildId()
-        const currentChannel = getModule(byProps("getLastSelectedChannelId"))?.getChannelId()
-
+        const currentServer = CurrentServer?.getGuildId()
+        const currentChannel = CurrentChannel?.getChannelId()
         if(currentServer) { //If not in a DM
-            TransitionTo(`/channels/@me`)
+            TransitionTo('/channels/@me')
             setImmediate(()=>TransitionTo(`/channels/${currentServer}/${currentChannel}`))
         }
     }
 
     start() {
-        new MutationObserver(_ => { this.patchTitle(); }).observe(document.querySelector('title'), {childList: true})
+        titleObserver = new MutationObserver(_ => { this.patchTitle(); })
+        titleObserver.observe(document.querySelector('title'), {childList: true})
         this.patchNames()
+        this.reloadServer()
     }
 
     stop() {
+        titleObserver.disconnect()
         Patcher.unpatchAll()
         this.reloadServer()
     }
