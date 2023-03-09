@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them, and removing dashes & underscores
- * @version 1.4.2
+ * @version 1.4.3
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
@@ -68,13 +68,8 @@ module.exports = class BetterChatNames {
         // Chat mention
         Patcher.after(Mention, 'Z',
             (_, args, data) => {
-                if (data?.props?.children?.[0]) { //If a chat mention
-                    if (data.props.role == 'link') { //If in chat
-                        data.props.children[1][0] = this.patchText(data.props.children[1][0])
-                    }
-                    else { //If in text area
-                        data.props.children[1] = this.patchText(data.props.children[1])
-                    }
+                if (data?.props?.children?.[1]) {
+                    data.props.children[1].props.children = this.patchText(data.props.children[1].props.children)
                 }
             }
         )
