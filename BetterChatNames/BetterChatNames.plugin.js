@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them, and removing dashes & underscores
- * @version 1.4.5
+ * @version 1.4.6
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
@@ -33,11 +33,8 @@ module.exports = class BetterChatNames {
         // Chat names
         Patcher.after(Channels, 'Z',
             (_, args, data) => {
-                const children1 = data?.props?.children?.props?.children?.[1]?.props?.children
-                const children2 = children1?.[children1.length - 2]?.props?.children
-                const chatName = children2?.[children2.length - 1]?.props?.children?.[0]
-                if (chatName) {
-                    data.props.children.props.children[1].props.children[children1.length - 2].props.children[children2.length - 1].props.children[0] = this.patchText(chatName)
+                if (data.props?.children?.props?.children?.[1]?.props?.children?.filter(c => c)[0]?.props?.children?.filter(c => c)[1]?.props?.children?.[0]) {
+                    data.props.children.props.children[1].props.children.filter(c => c)[0].props.children.filter(c => c)[1].props.children[0] = this.patchText(data.props.children.props.children[1].props.children.filter(c => c)[0].props.children.filter(c => c)[1].props.children[0])
                 }
             }
         )
@@ -45,15 +42,15 @@ module.exports = class BetterChatNames {
         // Title
         Patcher.after(Title, 'ZP',
             (_, args, data) => {
-                const TitleBar = data?.props?.children?.props?.children?.[0]?.props?.children[1]
-                if (TitleBar?.[1]?.props?.guild) { var n = 0 } //If in a server
-                else if (TitleBar?.[2]?.props?.guild) { var n = 1 } //If in a server with 'Hide Channels' installed
+                const titleBar = data?.props?.children?.props?.children?.[0]?.props?.children[1]
+                if (titleBar?.[1]?.props?.guild) { var n = 0 } //If in a server
+                else if (titleBar?.[2]?.props?.guild) { var n = 1 } //If in a server with 'Hide Channels' installed
                 if (n != null) {
-                    if (TitleBar[n + 1].props.channel?.type == 11) { //If in a thread
-                        data.props.children.props.children[0].props.children[1][n].props.children[0].props.children[1].props.children = this.patchText(TitleBar[n].props.children[0].props.children[1].props.children)
+                    if (titleBar[n + 1].props.channel?.type == 11) { //If in a thread
+                        data.props.children.props.children[0].props.children[1][n].props.children.filter(c => c)[0].props.children[1].props.children = this.patchText(titleBar[n].props.children.filter(c => c)[0].props.children[1].props.children)
                     }
                     else { //If in chat/forum
-                        data.props.children.props.children[0].props.children[1][n].props.children[1].props.children.props.children[2] = this.patchText(TitleBar[n].props.children[1].props.children.props.children[2])
+                        data.props.children.props.children[0].props.children[1][n].props.children.filter(c => c)[1].props.children.props.children[2] = this.patchText(titleBar[n].props.children.filter(c => c)[1].props.children.props.children[2])
                     }
                 }
             }
@@ -72,7 +69,7 @@ module.exports = class BetterChatNames {
         Patcher.after(Mention, 'Z',
             (_, args, data) => {
                 if (data?.props?.children?.[1]) {
-                    data.props.children[1].props.children = this.patchText(data.props.children[1].props.children)
+                    data.props.children[1].props.children[0] = this.patchText(data.props.children[1].props.children[0])
                 }
             }
         )
