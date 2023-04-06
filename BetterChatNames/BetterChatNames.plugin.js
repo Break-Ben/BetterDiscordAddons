@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them, and removing dashes & underscores
- * @version 1.4.6
+ * @version 1.4.7
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
@@ -25,7 +25,7 @@ const TransitionTo = getModule(byStrings('"transitionTo - Transitioning to "'), 
 
 const Channels = getModule(m => Object.values(m).some(byStrings('.SELECTED')))
 const Title = getModule(m => Object.values(m).some(byStrings('.toolbar')))
-const Placeholder = getModule(m => m.type?.render && byStrings('.richValue,', ',submitButtonVisible:(null===(')(m.type?.render)).type
+const Placeholder = getModule(m => m.type?.render && byStrings('.richValue,', 'submitButtonVisible:(null===(')(m.type?.render))?.type
 const Mention = getModule(m => Object.values(m).some(byStrings('.iconMention')))
 
 module.exports = class BetterChatNames {
@@ -69,7 +69,12 @@ module.exports = class BetterChatNames {
         Patcher.after(Mention, 'Z',
             (_, args, data) => {
                 if (data?.props?.children?.[1]) {
-                    data.props.children[1].props.children[0] = this.patchText(data.props.children[1].props.children[0])
+                    if (Array.isArray(data?.props?.children?.[1].props?.children)) { //If in chat
+                        data.props.children[1].props.children[0] = this.patchText(data.props.children[1].props.children[0])
+                    }
+                    else { //If in textarea
+                        data.props.children[1].props.children = this.patchText(data.props.children[1].props.children)
+                    }
                 }
             }
         )
