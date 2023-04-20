@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them, and removing dashes & underscores
- * @version 1.4.7
+ * @version 1.4.8
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
@@ -15,7 +15,7 @@ const RemoveDashes = true
 
 var titleObserver
 const DashRegex = new RegExp('-|_', 'g')
-const CapitalRegex = new RegExp(/(^\w)|([^a-zA-ZÀ-ɏḀ-ỿ'’]\w)/g)
+const CapitalRegex = new RegExp(/(?<=(^|[^a-zA-ZÀ-ɏḀ-ỿΑ-Ωα-ω'’]))[a-zA-ZÀ-ɏḀ-ỿΑ-Ωα-ω]/g)
 const { Webpack, Patcher } = new BdApi('BetterChatNames')
 const { getModule, Filters } = Webpack
 const { byProps, byStrings } = Filters
