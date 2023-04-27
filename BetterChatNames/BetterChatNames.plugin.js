@@ -15,7 +15,7 @@ const RemoveDashes = true
 
 var titleObserver
 const DashRegex = new RegExp('-|_', 'g')
-const CapitalRegex = new RegExp(/(?<=(^|[^a-zA-ZÀ-ɏḀ-ỿͰ-Ͽἀ-῾'’]))[a-zA-ZÀ-ɏḀ-ỿͰ-Ͽἀ-῾]/g)
+const CapitalRegex = new RegExp(/(?<=(^|[^a-zA-Zа-яА-ЯÀ-ɏḀ-ỿͰ-Ͽἀ-῾'’]))[a-zA-Zа-яА-ЯÀ-ɏḀ-ỿͰ-Ͽἀ-῾]/g)
 const { Webpack, Patcher } = new BdApi('BetterChatNames')
 const { getModule, Filters } = Webpack
 const { byProps, byStrings } = Filters
