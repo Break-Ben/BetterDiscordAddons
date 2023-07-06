@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them, and removing dashes & underscores
- * @version 1.5.0
+ * @version 1.5.1
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
@@ -33,8 +33,8 @@ module.exports = class BetterChatNames {
         // Chat names
         Patcher.after(Channels, 'Z',
             (_, args, data) => {
-                if (data.props?.children?.props?.children?.[1]?.props?.children?.filter(c => c)[0]?.props?.children?.filter(c => c)[1]?.props?.children?.[0]) {
-                    data.props.children.props.children[1].props.children.filter(c => c)[0].props.children.filter(c => c)[1].props.children[0] = this.patchText(data.props.children.props.children[1].props.children.filter(c => c)[0].props.children.filter(c => c)[1].props.children[0])
+                if (data.props?.children?.props?.children?.[1]?.props?.children?.props?.children?.filter(c => c)[0]?.props?.children?.filter(c => c)[1]?.props?.children) {
+                    data.props.children.props.children[1].props.children.props.children.filter(c => c)[0].props.children.filter(c => c)[1].props.children = this.patchText(data.props.children.props.children[1].props.children.props.children.filter(c => c)[0].props.children.filter(c => c)[1].props.children)
                 }
             }
         )
@@ -70,7 +70,7 @@ module.exports = class BetterChatNames {
             (_, args, data) => {
                 if (data?.props?.children?.[1]) {
                     if (Array.isArray(data?.props?.children?.[1].props?.children)) { //If in chat
-                        data.props.children[1].props.children[0] = this.patchText(data.props.children[1].props.children[0])
+                        data.props.children[1].props.children[0].props.children = this.patchText(data.props.children[1].props.children[0].props.children)
                     }
                     else { //If in textarea
                         data.props.children[1].props.children = this.patchText(data.props.children[1].props.children)
