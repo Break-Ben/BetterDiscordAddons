@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them, and removing dashes & underscores
- * @version 1.5.3
+ * @version 1.5.4
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
@@ -47,7 +47,13 @@ module.exports = class BetterChatNames {
                     titleBar[n].props.children.filter(c => c)[0].props.children[1].props.children = this.patchText(titleBar[n].props.children.filter(c => c)[0].props.children[1].props.children)
                 }
                 else { //If in chat/forum
-                    titleBar[n].props.children[3].props.children.props.children[2] = this.patchText(titleBar[n].props.children[3].props.children.props.children[2])
+                    const chatName = titleBar?.[n]?.props?.children?.[3]?.props?.children?.props
+                    if (chatName) { // If channel not patched with EditChannels
+                        chatName.children[2] = this.patchText(chatName.children[2])
+                    }
+                    else {
+                        titleBar[n].props.children[3].props.children = this.patchText(titleBar[n].props.children[3].props.children)
+                    }
                 }
             }
         })
@@ -63,7 +69,7 @@ module.exports = class BetterChatNames {
 
         // Chat mention
         Patcher.after(Mention, 'Z', (_, args, data) => {
-            const mention = data?.props?.children?.[1].props?.children?.[0]?.props || data?.props?.children?.[1]?.props; //If in chat or text area
+            const mention = data?.props?.children?.[1].props?.children?.[0]?.props || data?.props?.children?.[1]?.props //If in chat or text area
             if (mention) {
                 mention.children = this.patchText(mention.children)
             }
@@ -94,7 +100,13 @@ module.exports = class BetterChatNames {
     }
 
     start() {
-        titleObserver = new MutationObserver(_ => { this.patchTitle() })
+        var lastUnpatchedAppTitle
+        titleObserver = new MutationObserver(_ => {
+            if (document.title != lastUnpatchedAppTitle) { // Resolves conflicts with EditChannels' MutationObserver
+                lastUnpatchedAppTitle = document.title
+                this.patchTitle()
+            }
+        })
         titleObserver.observe(document.querySelector('title'), { childList: true })
         this.patchNames()
         this.refreshChannel()
