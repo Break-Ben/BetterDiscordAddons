@@ -54,25 +54,29 @@ module.exports = class BetterChatNames {
 
             // If in a thread
             if (titleBar[n + 1].props.channel?.type == 11) {
-                const title = titleBar[n].props.children.filter((c) => c)[0].props.children[1].props.children
+                const title = titleBar[n].props.children.filter((c) => c)[0]
+                    .props.children[1].props.children
                 title = this.patchText(title)
-            // If in chat/forum
-            } else {
-                const chatName = titleBar?.[n]?.props?.children?.[3]?.props?.children?.props
-                // If channel not patched with EditChannels
-                if (chatName) chatName.children[2] = this.patchText(chatName.children[2])
-
-                else {
-                    const title = titleBar[n].props.children[3].props.children
-                    title = this.patchText(title)
-                }
+                return;
             }
+
+            // If in chat/forum
+            const chatName = titleBar?.[n]?.props?.children?.[3]?.props?.children?.props
+
+            // If channel patched with EditChannels
+            if (!chatName) {
+                const title = titleBar[n].props.children[3].props.children
+                title = this.patchText(title)
+                return;
+            }
+
+            chatName.children[2] = this.patchText(chatName.children[2])
         })
 
         // Chat placeholder
         Patcher.after(Placeholder, 'render', (_, args, data) => {
             const textarea = data?.props?.children?.[2]?.props
-            //If in a server, not in a thread, can message and not editing a message
+            // If in a server, not in a thread, can message and not editing a message
             if (
                 textarea?.channel?.guild_id &&
                 textarea.channel.type != 11 && // thread
@@ -93,7 +97,7 @@ module.exports = class BetterChatNames {
     // App title
     patchTitle() {
         const patchedTitle = this.patchText(document.title)
-        //If in server and title not already patched
+        // If in server and title not already patched
         if (CurrentServer?.getGuildId() && document.title != patchedTitle) document.title = patchedTitle
 
     }
