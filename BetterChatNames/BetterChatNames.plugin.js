@@ -15,8 +15,8 @@ const CapitalizeVoiceChannels = false
 // ↑ ↑ ↑ ↑ Settings ↑ ↑ ↑ ↑
 
 var titleObserver
-const DashRegex = new RegExp('-|_', 'g')
-const CapitalRegex = new RegExp(/(?<=(^|[^\p{L}'’]))\p{L}/gu)
+const DashRegex = /-|_/g
+const CapitalRegex = /(?<=(^|[^\p{L}'’]))\p{L}/gu
 const { Webpack, Patcher } = new BdApi('BetterChatNames')
 const { getByStrings, getByKeys, getByPrototypeKeys } = Webpack
 const CurrentServer = getByKeys('getLastSelectedGuildId')
@@ -37,10 +37,13 @@ module.exports = class BetterChatNames {
                     ?.filter((c) => c)[0]
                     ?.props?.children?.filter((c) => c)
 
+            // Channel info like channel type, channel ID, server ID, etc
             const channelData = baseChannel?.[0]?.props?.channel
+
+            // DOM information like classes, titles, etc
             const channel = baseChannel?.[1]?.props
 
-            // don't change voice channel names unless you enable it
+            // Don't change voice channel names unless you enable it
             if (channel && (![2, 13].includes(channelData.type) || CapitalizeVoiceChannels))
                 channel.children = this.patchText(channel.children)
         })
@@ -57,7 +60,7 @@ module.exports = class BetterChatNames {
                 const title = titleBar[n].props.children.filter((c) => c)[0]
                     .props.children[1].props.children
                 title = this.patchText(title)
-                return;
+                return
             }
 
             // If in chat/forum
@@ -67,7 +70,7 @@ module.exports = class BetterChatNames {
             if (!chatName) {
                 const title = titleBar[n].props.children[3].props.children
                 title = this.patchText(title)
-                return;
+                return
             }
 
             chatName.children[2] = this.patchText(chatName.children[2])
