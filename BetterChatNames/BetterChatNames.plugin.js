@@ -37,15 +37,14 @@ module.exports = class BetterChatNames {
                     ?.filter((c) => c)[0]
                     ?.props?.children?.filter((c) => c)
 
-            // Channel info like channel type, channel ID, server ID, etc
-            const channelData = baseChannel?.[0]?.props?.channel
+            const channelData = baseChannel?.[0]?.props?.channel // Channel info like channel type, channel ID, server ID, etc
 
-            // DOM information like classes, titles, etc
-            const channel = baseChannel?.[1]?.props
+            const channel = baseChannel?.[1]?.props // DOM information like classes, titles, etc
 
             // Don't change voice channel names unless you enable it
-            if (channel && (![2, 13].includes(channelData.type) || CapitalizeVoiceChannels))
+            if (channel && (![2, 13].includes(channelData.type) || CapitalizeVoiceChannels)) {
                 channel.children = this.patchText(channel.children)
+            }
         })
 
         // Toolbar Title
@@ -63,8 +62,7 @@ module.exports = class BetterChatNames {
                 return
             }
 
-            // If in chat/forum
-            const chatName = titleBar?.[n]?.props?.children?.[3]?.props?.children?.props
+            const chatName = titleBar?.[n]?.props?.children?.[3]?.props?.children?.props // If in chat/forum
 
             // If channel patched with EditChannels
             if (!chatName) {
@@ -82,18 +80,22 @@ module.exports = class BetterChatNames {
             // If in a server, not in a thread, can message and not editing a message
             if (
                 textarea?.channel?.guild_id &&
-                textarea.channel.type != 11 && // thread
+                textarea.channel.type != 11 &&
                 !textarea?.disabled &&
                 textarea?.type?.analyticsName == 'normal'
-            )
+            ) {
                 textarea.placeholder = this.patchText(textarea.placeholder)
+            }
         })
 
         // Chat mention
         Patcher.after(Mention, 'default', (_, args, data) => {
-            // If in chat or text area
-            const mention = data?.props?.children?.[1].props?.children?.[0]?.props || data?.props?.children?.[1]?.props
-            if (mention) mention.children = this.patchText(mention.children)
+            const mention = // If in chat or text area
+                data?.props?.children?.[1].props?.children?.[0]?.props ||
+                data?.props?.children?.[1]?.props
+            if (mention) {
+                mention.children = this.patchText(mention.children)
+            }
         })
     }
 
@@ -101,21 +103,26 @@ module.exports = class BetterChatNames {
     patchTitle() {
         const patchedTitle = this.patchText(document.title)
         // If in server and title not already patched
-        if (CurrentServer?.getGuildId() && document.title != patchedTitle) document.title = patchedTitle
-
+        if (CurrentServer?.getGuildId() && document.title != patchedTitle) {
+            document.title = patchedTitle
+        }
     }
 
     patchText(channelName) {
-        if (RemoveDashes) channelName = channelName.replace(DashRegex, ' ')
-        if (Capitalise) channelName = channelName.replace(CapitalRegex, (letter) => letter.toUpperCase())
+        if (RemoveDashes) {
+            channelName = channelName.replace(DashRegex, ' ')
+        }
+
+        if (Capitalise) {
+            channelName = channelName.replace(CapitalRegex, (letter) => letter.toUpperCase())
+        }
         return channelName
     }
 
     refreshChannel() {
         const currentServer = CurrentServer?.getGuildId()
         const currentChannel = CurrentChannel?.getChannelId()
-        // If not in a DM
-        if (currentServer) {
+        if (currentServer) { // If not in a DM
             TransitionTo('/channels/@me')
             setImmediate(() => TransitionTo(`/channels/${currentServer}/${currentChannel}`))
         }
