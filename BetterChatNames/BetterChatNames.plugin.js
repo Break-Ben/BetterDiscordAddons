@@ -11,7 +11,7 @@
 
 const Capitalise = true
 const RemoveDashes = true
-const CapitalizeVoiceChannels = false
+const CapitaliseVoiceChannels = false
 // ↑ ↑ ↑ ↑ Settings ↑ ↑ ↑ ↑
 
 var titleObserver
@@ -41,15 +41,15 @@ module.exports = class BetterChatNames {
             const channel = baseChannel?.[1]?.props // DOM information like classes, titles, etc
 
             // Don't change voice channel names unless you enable it
-            if (channel && (![2, 13].includes(channelData.type) || CapitalizeVoiceChannels)) {
+            if (channel && (![2, 13].includes(channelData.type) || CapitaliseVoiceChannels)) {
                 channel.children = this.patchText(channel.children)
             }
         })
 
         // Toolbar Title
         Patcher.after(Title, 'default', (_, args, data) => {
-            const titleBar = data?.props?.children?.props?.children // If in a server with 'Hide Channels' not installed
-            const n = titleBar[1]?.props?.guild ? 0 : titleBar[2]?.props?.guild ? 1 : null
+            const titleBar = data?.props?.children?.props?.children
+            const n = titleBar[1]?.props?.guild ? 0 : titleBar[2]?.props?.guild ? 1 : null // If in a server with 'Hide Channels' not installed
             if (n == null) {
                 return
             }
@@ -90,6 +90,7 @@ module.exports = class BetterChatNames {
             const mention = // If in chat or text area
                 data?.props?.children?.[1].props?.children?.[0]?.props ||
                 data?.props?.children?.[1]?.props
+
             if (mention) {
                 mention.children = this.patchText(mention.children)
             }
@@ -105,13 +106,8 @@ module.exports = class BetterChatNames {
     }
 
     patchText(channelName) {
-        if (RemoveDashes) {
-            channelName = channelName.replace(DashRegex, ' ')
-        }
-
-        if (Capitalise) {
-            channelName = channelName.replace(CapitalRegex, (letter) => letter.toUpperCase())
-        }
+        if (RemoveDashes) channelName = channelName.replace(DashRegex, ' ')
+        if (Capitalise) channelName = channelName.replace(CapitalRegex, (letter) => letter.toUpperCase())
         return channelName
     }
 
