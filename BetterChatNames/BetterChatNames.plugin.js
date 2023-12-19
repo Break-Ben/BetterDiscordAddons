@@ -34,11 +34,10 @@ module.exports = class BetterChatNames {
         Patcher.after(Channels, 'default', (_, args, data) => {
             const baseChannel =
                 data.props?.children?.props?.children?.[1]?.props?.children?.props?.children
-                    ?.filter((c) => c)[0]
+                    ?.find((c) => c)
                     ?.props?.children?.filter((c) => c)
 
             const channelData = baseChannel?.[0]?.props?.channel // Channel info like channel type, channel ID, server ID, etc
-
             const channel = baseChannel?.[1]?.props // DOM information like classes, titles, etc
 
             // Don't change voice channel names unless you enable it
@@ -49,13 +48,13 @@ module.exports = class BetterChatNames {
 
         // Toolbar Title
         Patcher.after(Title, 'default', (_, args, data) => {
-            const titleBar = data?.props?.children?.props?.children
-            // If in a server with 'Hide Channels' not installed
+            const titleBar = data?.props?.children?.props?.children // If in a server with 'Hide Channels' not installed
             const n = titleBar[1]?.props?.guild ? 0 : titleBar[2]?.props?.guild ? 1 : null
-            if (n == null) return
+            if (n == null) {
+                return
+            }
 
-            // If in a thread
-            if (titleBar[n + 1].props.channel?.type == 11) {
+            if (titleBar[n + 1].props.channel?.type == 11) { // If in a thread
                 const title = titleBar[n].props.children.filter((c) => c)[0]
                     .props.children[1].props.children
                 title = this.patchText(title)
@@ -64,8 +63,7 @@ module.exports = class BetterChatNames {
 
             const chatName = titleBar?.[n]?.props?.children?.[3]?.props?.children?.props // If in chat/forum
 
-            // If channel patched with EditChannels
-            if (!chatName) {
+            if (!chatName) { // If channel patched with EditChannels
                 const title = titleBar[n].props.children[3].props.children
                 title = this.patchText(title)
                 return
@@ -77,8 +75,7 @@ module.exports = class BetterChatNames {
         // Chat placeholder
         Patcher.after(Placeholder, 'render', (_, args, data) => {
             const textarea = data?.props?.children?.[2]?.props
-            // If in a server, not in a thread, can message and not editing a message
-            if (
+            if ( // If in a server, not in a thread, can message and not editing a message
                 textarea?.channel?.guild_id &&
                 textarea.channel.type != 11 &&
                 !textarea?.disabled &&
@@ -102,8 +99,7 @@ module.exports = class BetterChatNames {
     // App title
     patchTitle() {
         const patchedTitle = this.patchText(document.title)
-        // If in server and title not already patched
-        if (CurrentServer?.getGuildId() && document.title != patchedTitle) {
+        if (CurrentServer?.getGuildId() && document.title != patchedTitle) { // If in server and title not already patched
             document.title = patchedTitle
         }
     }
@@ -131,8 +127,7 @@ module.exports = class BetterChatNames {
     start() {
         var lastUnpatchedAppTitle
         titleObserver = new MutationObserver((_) => {
-             // Resolves conflicts with EditChannels' MutationObserver
-            if (document.title != lastUnpatchedAppTitle) {
+            if (document.title != lastUnpatchedAppTitle) { // Resolves conflicts with EditChannels' MutationObserver
                 lastUnpatchedAppTitle = document.title
                 this.patchTitle()
             }
