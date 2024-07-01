@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them and removing dashes/underscores
- * @version 1.6.1
+ * @version 1.6.2
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
@@ -36,24 +36,27 @@ module.exports = class BetterChatNames {
     patchNames() {
         // Chat names
         Patcher.after(channels, 'Z', (_, args, data) => {
-            const channel = data.props?.children?.props?.children?.[1]?.props?.children?.props?.children?.find(c => c)?.props?.children?.filter(c => c)
-            const channelName = channel?.[1]?.props
+            const channel = data?.props?.children
+            const channelInfo = channel?.children // If BetterChannelList is installed
+                ? channel?.children?.props?.children?.[1]?.props?.children?.props?.children
+                : channel?.props?.children?.[1]?.props?.children?.props?.children?.[0]?.props?.children?.filter(Boolean)
+            const channelName = channelInfo?.[1]?.props?.children?.[0]?.props?.children?.[1]?.props?.children?.[0]?.props ?? channelInfo?.[1]?.props
 
-            if (channelName && (![VOICE, STAGE].includes(channel?.[0]?.props?.channel?.type) || PATCH_UNRESTRICTED_CHANNELS)) { // If not a voice/stage channel or PATCH_UNRESTRICTED_CHANNELS is enabled
+            if (channelName && (![VOICE, STAGE].includes(channelInfo?.[0]?.props?.channel?.type) || PATCH_UNRESTRICTED_CHANNELS)) { // If not a voice/stage channel or PATCH_UNRESTRICTED_CHANNELS is enabled
                 channelName.children = this.patchText(channelName.children)
             }
         })
 
         // Toolbar Title
         Patcher.after(title, 'Z', (_, args, data) => {
-            const titleBar = data?.props?.children?.props?.children?.filter(c => c)
+            const titleBar = data?.props?.children?.props?.children?.filter(Boolean)
             const n = titleBar[1]?.props?.guild ? 0 : titleBar[2]?.props?.guild ? 1 : null // If in a server with 'Hide Channels' installed
             if (n == null) { return }
 
             if (titleBar[n + 1].props.channel?.type == THREAD) { // If in a thread
-                titleBar[n].props.children.find(c => c).props.children[1].props.children = this.patchText(titleBar[n].props.children.find(c => c).props.children[1].props.children)
+                titleBar[n].props.children.find(Boolean).props.children[1].props.children = this.patchText(titleBar[n].props.children.find(Boolean).props.children[1].props.children)
                 if (PATCH_UNRESTRICTED_CHANNELS) {
-                    titleBar[n].props.children.filter(c => c)[2].props.children.props.children[2] = this.patchText(titleBar[n].props.children.filter(c => c)[2].props.children.props.children[2])
+                    titleBar[n].props.children.filter(Boolean)[2].props.children.props.children[2] = this.patchText(titleBar[n].props.children.filter(Boolean)[2].props.children.props.children[2])
                 }
             }
             else { // If in chat/forum
@@ -77,7 +80,7 @@ module.exports = class BetterChatNames {
         Patcher.after(mention, 'Z', (_, args, data) => {
             const channelName = data?.props?.children?.[1].props?.children?.[0]?.props || data?.props?.children?.[1]?.props // If in chat or text area
 
-            if (channelName && (data.props.className.includes('iconMentionText') || PATCH_UNRESTRICTED_CHANNELS)) { // If a normal chat mention or PATCH_UNRESTRICTED_CHANNELS is enabled
+            if (typeof channelName.children != "object" && (data.props.className.includes('iconMentionText') || PATCH_UNRESTRICTED_CHANNELS)) { // If channel is known and is a normal chat mention or PATCH_UNRESTRICTED_CHANNELS is enabled
                 channelName.children = this.patchText(channelName.children)
             }
         })
