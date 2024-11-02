@@ -2,103 +2,132 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them and removing dashes/underscores
- * @version 1.6.2
+ * @version 1.6.3
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
  * @updateUrl https://raw.githubusercontent.com/Break-Ben/BetterDiscordAddons/main/BetterChatNames/BetterChatNames.plugin.js
  */
 
-const CAPITALISE = true
-const REMOVE_DASHES = true
-const PATCH_UNRESTRICTED_CHANNELS = true  // Also change the names of channels including threads, voice channels and stages that can already contain capitals and spaces
-// ↑ ↑ ↑ ↑ Settings ↑ ↑ ↑ ↑
+const settings = {
+    capitalise: true,
+    removeDashes: true,
+    removeEmojis: false,
+    patchUnrestrictedChannels: true // Also change the names of channels including threads, voice channels and stages that can already contain capitals and spaces
+}   // ↑ ↑ ↑ ↑ Settings ↑ ↑ ↑ ↑
 
-const VOICE = 2
-const THREAD = 11
-const STAGE = 13
-const DASH_REGEX = /-|_/g
-const CAPITAL_REGEX = /(?<=(^|[^\p{L}'’]))\p{L}/gu
+const channelTypes = {
+    voice: 2,
+    thread: 11,
+    stage: 13
+}
+const regex = {
+    dash: /-|_/g,
+    capital: /(?<=(^|[^\p{L}'’]))\p{L}/gu,
+    emoji: /-?\p{Emoji}-?/gu
+}
 
-var titleObserver
+let titleObserver
 const { Webpack, Patcher } = new BdApi('BetterChatNames')
 const { getByStrings, getByKeys, getByPrototypeKeys } = Webpack
 const currentServer = getByKeys('getLastSelectedGuildId')
 const currentChannel = getByKeys('getLastSelectedChannelId')
 const transitionTo = getByStrings('"transitionTo - Transitioning to "', { searchExports: true })
 
-const channels = getByStrings('.SELECTED', { defaultExport: false })
+const sidebar = getByStrings('.SELECTED', { defaultExport: false })
 const title = getByStrings('.HEADER_BAR', { defaultExport: false })
 const placeholder = getByPrototypeKeys('getPlaceholder').prototype
 const mention = getByStrings('.iconMention', { defaultExport: false })
 
 module.exports = class BetterChatNames {
+    start() {
+        let lastUnpatchedAppTitle
+        titleObserver = new MutationObserver(() => {
+            if (document.title != lastUnpatchedAppTitle) { // Resolves conflicts with EditChannels' MutationObserver
+                lastUnpatchedAppTitle = document.title
+                this.patchAppTitle()
+            }
+        })
+        titleObserver.observe(document.querySelector('title'), { childList: true })
+        this.patchNames()
+        this.refreshChannel()
+    }
+
+    stop() {
+        titleObserver.disconnect()
+        Patcher.unpatchAll()
+        this.refreshChannel()
+    }
+
     patchNames() {
-        // Chat names
-        Patcher.after(channels, 'Z', (_, args, data) => {
+        this.patchSidebar()
+        this.patchToolbarTitle()
+        this.patchChatPlaceholder()
+        this.patchMention()
+    }
+
+    patchSidebar() {
+        Patcher.after(sidebar, 'Z', (_, args, data) => {
             const channel = data?.props?.children
             const channelInfo = channel?.children // If BetterChannelList is installed
                 ? channel?.children?.props?.children?.[1]?.props?.children?.props?.children
                 : channel?.props?.children?.[1]?.props?.children?.props?.children?.[0]?.props?.children?.filter(Boolean)
             const channelName = channelInfo?.[1]?.props?.children?.[0]?.props?.children?.[1]?.props?.children?.[0]?.props ?? channelInfo?.[1]?.props
 
-            if (channelName && (![VOICE, STAGE].includes(channelInfo?.[0]?.props?.channel?.type) || PATCH_UNRESTRICTED_CHANNELS)) { // If not a voice/stage channel or PATCH_UNRESTRICTED_CHANNELS is enabled
+            if (channelName && (![channelTypes.voice, channelTypes.stage].includes(channelInfo?.[0]?.props?.channel?.type) || settings.patchUnrestrictedChannels)) // If not a voice/stage channel or patchUnrestrictedChannels is enabled
                 channelName.children = this.patchText(channelName.children)
-            }
         })
+    }
 
-        // Toolbar Title
+    patchToolbarTitle() {
         Patcher.after(title, 'Z', (_, args, data) => {
             const titleBar = data?.props?.children?.props?.children?.filter(Boolean)
             const n = titleBar[1]?.props?.guild ? 0 : titleBar[2]?.props?.guild ? 1 : null // If in a server with 'Hide Channels' installed
-            if (n == null) { return }
+            if (n == null) return
 
-            if (titleBar[n + 1].props.channel?.type == THREAD) { // If in a thread
+            if (titleBar[n + 1].props.channel?.type == channelTypes.thread) { // If in a thread
                 titleBar[n].props.children.find(Boolean).props.children[1].props.children = this.patchText(titleBar[n].props.children.find(Boolean).props.children[1].props.children)
-                if (PATCH_UNRESTRICTED_CHANNELS) {
+                if (settings.patchUnrestrictedChannels)
                     titleBar[n].props.children.filter(Boolean)[2].props.children.props.children[2] = this.patchText(titleBar[n].props.children.filter(Boolean)[2].props.children.props.children[2])
-                }
             }
             else { // If in chat/forum
                 const channelName = titleBar?.[n]?.props?.children?.[1]?.props?.children?.props?.children
-                if (channelName) {
+                if (channelName)
                     channelName[2] = this.patchText(channelName[2])
-                }
             }
         })
+    }
 
-        // Chat placeholder
+    patchChatPlaceholder() {
         Patcher.after(placeholder, 'render', (_, args, data) => {
-            const textarea = data?.props?.children?.[2]?.props
+            const textArea = data?.props?.children?.[2]?.props
 
-            if (textarea?.channel?.guild_id && (textarea?.channel?.type != THREAD || PATCH_UNRESTRICTED_CHANNELS) && !textarea?.disabled && textarea?.type?.analyticsName == 'normal') {// If in a server, not in a thread (or PATCH_UNRESTRICTED_CHANNELS is enabled), can message and not editing a message
-                textarea.placeholder = this.patchText(textarea.placeholder)
-            }
+            if (textArea?.channel?.guild_id && (textArea?.channel?.type != channelTypes.thread || settings.patchUnrestrictedChannels) && !textArea?.disabled && textArea?.type?.analyticsName == 'normal')// If in a server, not in a thread (or patchUnrestrictedChannels is enabled), can message and not editing a message
+                textArea.placeholder = this.patchText(textArea.placeholder)
         })
+    }
 
-        // Chat mention
+    patchMention() {
         Patcher.after(mention, 'Z', (_, args, data) => {
             const channelName = data?.props?.children?.[1].props?.children?.[0]?.props || data?.props?.children?.[1]?.props // If in chat or text area
 
-            if (typeof channelName.children != "object" && (data.props.className.includes('iconMentionText') || PATCH_UNRESTRICTED_CHANNELS)) { // If channel is known and is a normal chat mention or PATCH_UNRESTRICTED_CHANNELS is enabled
+            if (typeof channelName.children != "object" && (data.props.className.includes('iconMentionText') || settings.patchUnrestrictedChannels)) // If channel is known and is a normal chat mention or patchUnrestrictedChannels is enabled
                 channelName.children = this.patchText(channelName.children)
-            }
         })
     }
 
-    // App title
-    patchTitle() {
+    patchAppTitle() {
         const patchedTitle = this.patchText(document.title)
 
-        if (currentServer?.getGuildId() && document.title != patchedTitle) { // If in server and title not already patched
+        if (currentServer?.getGuildId() && document.title != patchedTitle) // If in server and title not already patched
             document.title = patchedTitle
-        }
     }
 
-    patchText(channelName) {
-        if (REMOVE_DASHES) { channelName = channelName.replace(DASH_REGEX, ' ') }
-        if (CAPITALISE) { channelName = channelName.replace(CAPITAL_REGEX, letter => letter.toUpperCase()) }
-        return channelName
+    patchText(text) {
+        if (settings.removeEmojis) text = text.replace(regex.emoji, '')
+        if (settings.removeDashes) text = text.replace(regex.dash, ' ')
+        if (settings.capitalise) text = text.replace(regex.capital, letter => letter.toUpperCase())
+        return text
     }
 
     refreshChannel() {
@@ -109,25 +138,5 @@ module.exports = class BetterChatNames {
             transitionTo('/channels/@me')
             setImmediate(() => transitionTo(`/channels/${currentServerId}/${currentChannelId}`))
         }
-    }
-
-    start() {
-        let lastUnpatchedAppTitle
-        titleObserver = new MutationObserver(_ => {
-            if (document.title != lastUnpatchedAppTitle) { // Resolves conflicts with EditChannels' MutationObserver
-                lastUnpatchedAppTitle = document.title
-                this.patchTitle()
-            }
-        })
-
-        titleObserver.observe(document.querySelector('title'), { childList: true })
-        this.patchNames()
-        this.refreshChannel()
-    }
-
-    stop() {
-        titleObserver.disconnect()
-        Patcher.unpatchAll()
-        this.refreshChannel()
     }
 }
