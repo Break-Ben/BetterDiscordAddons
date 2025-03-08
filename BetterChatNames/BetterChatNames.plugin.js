@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them and removing dashes/underscores
- * @version 1.6.3
+ * @version 1.6.4
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
@@ -41,14 +41,7 @@ const mention = getByStrings('.iconMention', { defaultExport: false })
 
 module.exports = class BetterChatNames {
     start() {
-        let lastUnpatchedAppTitle
-        titleObserver = new MutationObserver(() => {
-            if (document.title != lastUnpatchedAppTitle) { // Resolves conflicts with EditChannels' MutationObserver
-                lastUnpatchedAppTitle = document.title
-                this.patchAppTitle()
-            }
-        })
-        titleObserver.observe(document.querySelector('title'), { childList: true })
+        this.observeAppTitle()
         this.patchNames()
         this.refreshChannel()
     }
@@ -59,6 +52,24 @@ module.exports = class BetterChatNames {
         this.refreshChannel()
     }
 
+    observeAppTitle() {
+        let lastUnpatchedAppTitle
+        titleObserver = new MutationObserver(() => {
+            if (document.title != lastUnpatchedAppTitle) { // Resolves conflicts with EditChannels' MutationObserver
+                lastUnpatchedAppTitle = document.title
+                this.patchAppTitle()
+            }
+        })
+        titleObserver.observe(document.querySelector('title'), { childList: true })
+    }
+
+    patchAppTitle() {
+        const patchedTitle = this.patchText(document.title)
+
+        if (currentServer?.getGuildId() && document.title != patchedTitle) // If in server and title not already patched
+            document.title = patchedTitle
+    }
+
     patchNames() {
         this.patchSidebar()
         this.patchToolbarTitle()
@@ -67,7 +78,7 @@ module.exports = class BetterChatNames {
     }
 
     patchSidebar() {
-        Patcher.after(sidebar, 'Z', (_, args, data) => {
+        Patcher.after(sidebar, 'ZP', (_, args, data) => {
             const channel = data?.props?.children
             const channelInfo = channel?.children // If BetterChannelList is installed
                 ? channel?.children?.props?.children?.[1]?.props?.children?.props?.children
@@ -114,13 +125,6 @@ module.exports = class BetterChatNames {
             if (typeof channelName.children != "object" && (data.props.className.includes('iconMentionText') || settings.patchUnrestrictedChannels)) // If channel is known and is a normal chat mention or patchUnrestrictedChannels is enabled
                 channelName.children = this.patchText(channelName.children)
         })
-    }
-
-    patchAppTitle() {
-        const patchedTitle = this.patchText(document.title)
-
-        if (currentServer?.getGuildId() && document.title != patchedTitle) // If in server and title not already patched
-            document.title = patchedTitle
     }
 
     patchText(text) {
