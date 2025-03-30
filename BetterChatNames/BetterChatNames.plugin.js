@@ -1,8 +1,8 @@
 /**
  * @name BetterChatNames
  * @author Break
- * @description Improves chat names by automatically capitalising them and removing dashes/underscores
- * @version 1.6.4
+ * @description Improves chat names by automatically capitalising them and/or removing dashes/underscores
+ * @version 1.7.0
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
@@ -13,10 +13,10 @@ const settings = {
     capitalise: true,
     removeDashes: true,
     removeEmojis: false,
-    patchUnrestrictedChannels: true // Also change the names of channels including threads, voice channels and stages that can already contain capitals and spaces
+    patchUnrestrictedChannels: true // Change the names of channels that can already contain capitals and spaces (e.g. voice channels, threads, and stages)
 }   // ↑ ↑ ↑ ↑ Settings ↑ ↑ ↑ ↑
 
-const channelTypes = {
+const unrestrictedChannels = {
     voice: 2,
     thread: 11,
     stage: 13
@@ -28,13 +28,16 @@ const regex = {
 }
 
 let titleObserver
-const { Webpack, Patcher } = new BdApi('BetterChatNames')
-const { getByStrings, getByKeys, getByPrototypeKeys } = Webpack
+const { Webpack, Patcher, Utils } = new BdApi('BetterChatNames')
+const { getModule, getByStrings, getByKeys, getByPrototypeKeys } = Webpack
+const { findInTree } = Utils
+const searchOptions = { walkable: ['children', 'props'] }
+
 const currentServer = getByKeys('getLastSelectedGuildId')
 const currentChannel = getByKeys('getLastSelectedChannelId')
 const transitionTo = getByStrings('"transitionTo - Transitioning to "', { searchExports: true })
 
-const sidebar = getByStrings('.SELECTED', { defaultExport: false })
+const sidebar = getModule(m => m?.render?.toString()?.includes('.CHANNEL'))
 const title = getByStrings('.HEADER_BAR', { defaultExport: false })
 const placeholder = getByPrototypeKeys('getPlaceholder').prototype
 const mention = getByStrings('.iconMention', { defaultExport: false })
@@ -78,51 +81,47 @@ module.exports = class BetterChatNames {
     }
 
     patchSidebar() {
-        Patcher.after(sidebar, 'ZP', (_, args, data) => {
-            const channel = data?.props?.children
-            const channelInfo = channel?.children // If BetterChannelList is installed
-                ? channel?.children?.props?.children?.[1]?.props?.children?.props?.children
-                : channel?.props?.children?.[1]?.props?.children?.props?.children?.[0]?.props?.children?.filter(Boolean)
-            const channelName = channelInfo?.[1]?.props?.children?.[0]?.props?.children?.[1]?.props?.children?.[0]?.props ?? channelInfo?.[1]?.props
+        Patcher.after(sidebar, 'render', (_, __, data) => {
+            const channelName = findInTree(data, prop => typeof prop?.children == 'string', searchOptions)
+            const channelType = findInTree(data, prop => prop?.channel, searchOptions).channel.type
 
-            if (channelName && (![channelTypes.voice, channelTypes.stage].includes(channelInfo?.[0]?.props?.channel?.type) || settings.patchUnrestrictedChannels)) // If not a voice/stage channel or patchUnrestrictedChannels is enabled
+            if (!Object.values(unrestrictedChannels).includes(channelType) || settings.patchUnrestrictedChannels) // If not a voice/stage channel or patchUnrestrictedChannels is enabled
                 channelName.children = this.patchText(channelName.children)
         })
     }
 
     patchToolbarTitle() {
-        Patcher.after(title, 'Z', (_, args, data) => {
-            const titleBar = data?.props?.children?.props?.children?.filter(Boolean)
-            const n = titleBar[1]?.props?.guild ? 0 : titleBar[2]?.props?.guild ? 1 : null // If in a server with 'Hide Channels' installed
-            if (n == null) return
+        Patcher.after(title, 'Z', (_, __, data) => {
+            const rootChannel = findInTree(data, prop => prop?.level, searchOptions)
+            if (!rootChannel)
+                return
 
-            if (titleBar[n + 1].props.channel?.type == channelTypes.thread) { // If in a thread
-                titleBar[n].props.children.find(Boolean).props.children[1].props.children = this.patchText(titleBar[n].props.children.find(Boolean).props.children[1].props.children)
-                if (settings.patchUnrestrictedChannels)
-                    titleBar[n].props.children.filter(Boolean)[2].props.children.props.children[2] = this.patchText(titleBar[n].props.children.filter(Boolean)[2].props.children.props.children[2])
-            }
-            else { // If in chat/forum
-                const channelName = titleBar?.[n]?.props?.children?.[1]?.props?.children?.props?.children
-                if (channelName)
-                    channelName[2] = this.patchText(channelName[2])
+            if (rootChannel.level == 1) // If not in thread
+                rootChannel.children.props.children[2] = this.patchText(rootChannel.children.props.children[2])
+            else if (rootChannel.level == 2) { // If in thread
+                rootChannel.children = this.patchText(rootChannel.children)
+                if (settings.patchUnrestrictedChannels) {
+                    const threadName = findInTree(data, prop => Array.isArray(prop) && prop[1] == ' ', searchOptions)
+                    threadName[2] = this.patchText(threadName[2])
+                }
             }
         })
     }
 
     patchChatPlaceholder() {
-        Patcher.after(placeholder, 'render', (_, args, data) => {
-            const textArea = data?.props?.children?.[2]?.props
+        Patcher.after(placeholder, 'render', (_, __, data) => {
+            const textArea = findInTree(data, prop => prop.channel, searchOptions)
 
-            if (textArea?.channel?.guild_id && (textArea?.channel?.type != channelTypes.thread || settings.patchUnrestrictedChannels) && !textArea?.disabled && textArea?.type?.analyticsName == 'normal')// If in a server, not in a thread (or patchUnrestrictedChannels is enabled), can message and not editing a message
+            if (textArea.channel.guild_id && (textArea.channel.type != unrestrictedChannels.thread || settings.patchUnrestrictedChannels) && !textArea.disabled && textArea.type.analyticsName == 'normal') // If in a server, not in a thread (or patchUnrestrictedChannels is enabled), can message and not editing a message
                 textArea.placeholder = this.patchText(textArea.placeholder)
         })
     }
 
     patchMention() {
-        Patcher.after(mention, 'Z', (_, args, data) => {
-            const channelName = data?.props?.children?.[1].props?.children?.[0]?.props || data?.props?.children?.[1]?.props // If in chat or text area
+        Patcher.after(mention, 'Z', (_, __, data) => {
+            const channelName = findInTree(data, prop => typeof prop.children == 'string', searchOptions)
 
-            if (typeof channelName.children != "object" && (data.props.className.includes('iconMentionText') || settings.patchUnrestrictedChannels)) // If channel is known and is a normal chat mention or patchUnrestrictedChannels is enabled
+            if (data.props.className.includes('iconMentionText') || settings.patchUnrestrictedChannels) // If is a normal chat mention (not a thread) or patchUnrestrictedChannels is enabled
                 channelName.children = this.patchText(channelName.children)
         })
     }
