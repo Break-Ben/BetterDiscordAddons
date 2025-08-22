@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them and/or removing dashes/underscores
- * @version 1.7.0
+ * @version 1.7.1
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
@@ -31,7 +31,7 @@ let titleObserver
 const { Webpack, Patcher, Utils } = new BdApi('BetterChatNames')
 const { getModule, getByStrings, getByKeys, getByPrototypeKeys } = Webpack
 const { findInTree } = Utils
-const searchOptions = { walkable: ['children', 'props'] }
+const searchOptions = { walkable: ['children', 'props'] } // For Utils.findInTree
 
 const currentServer = getByKeys('getLastSelectedGuildId')
 const currentChannel = getByKeys('getLastSelectedChannelId')
@@ -82,11 +82,11 @@ module.exports = class BetterChatNames {
 
     patchSidebar() {
         Patcher.after(sidebar, 'render', (_, __, data) => {
-            const channelName = findInTree(data, prop => typeof prop?.children == 'string', searchOptions)
+            const channelName = findInTree(data, prop => prop?.name, searchOptions)
             const channelType = findInTree(data, prop => prop?.channel, searchOptions).channel.type
 
             if (!Object.values(unrestrictedChannels).includes(channelType) || settings.patchUnrestrictedChannels) // If not a voice/stage channel or patchUnrestrictedChannels is enabled
-                channelName.children = this.patchText(channelName.children)
+                channelName.name = this.patchText(channelName.name)
         })
     }
 
