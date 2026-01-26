@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them and/or removing dashes/underscores
- * @version 1.7.1
+ * @version 1.7.2
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
@@ -38,9 +38,9 @@ const currentChannel = getByKeys('getLastSelectedChannelId')
 const transitionTo = getByStrings('"transitionTo - Transitioning to "', { searchExports: true })
 
 const sidebar = getModule(m => m?.render?.toString()?.includes('.CHANNEL'))
-const title = getByStrings('.HEADER_BAR', { defaultExport: false })
+const header = getByStrings('.HEADER_BAR)', { defaultExport: false })
 const placeholder = getByPrototypeKeys('getPlaceholder').prototype
-const mention = getByStrings('.iconMention', { defaultExport: false })
+const mention = getByStrings('channelWithIcon', { defaultExport: false })
 
 module.exports = class BetterChatNames {
     start() {
@@ -75,7 +75,7 @@ module.exports = class BetterChatNames {
 
     patchNames() {
         this.patchSidebar()
-        this.patchToolbarTitle()
+        this.patchHeader()
         this.patchChatPlaceholder()
         this.patchMention()
     }
@@ -90,8 +90,8 @@ module.exports = class BetterChatNames {
         })
     }
 
-    patchToolbarTitle() {
-        Patcher.after(title, 'Z', (_, __, data) => {
+    patchHeader() {
+        Patcher.after(header, 'A', (_, __, data) => {
             const rootChannel = findInTree(data, prop => prop?.level, searchOptions)
             if (!rootChannel)
                 return
@@ -118,7 +118,7 @@ module.exports = class BetterChatNames {
     }
 
     patchMention() {
-        Patcher.after(mention, 'Z', (_, __, data) => {
+        Patcher.after(mention, 'A', (_, __, data) => {
             const channelName = findInTree(data, prop => typeof prop.children == 'string', searchOptions)
 
             if (data.props.className.includes('iconMentionText') || settings.patchUnrestrictedChannels) // If is a normal chat mention (not a thread) or patchUnrestrictedChannels is enabled
