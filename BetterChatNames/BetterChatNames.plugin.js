@@ -2,7 +2,7 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them and/or removing dashes/underscores
- * @version 1.7.2
+ * @version 1.7.3
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
@@ -35,7 +35,7 @@ const searchOptions = { walkable: ['children', 'props'] } // For Utils.findInTre
 
 const currentServer = getByKeys('getLastSelectedGuildId')
 const currentChannel = getByKeys('getLastSelectedChannelId')
-const transitionTo = getByStrings('"transitionTo - Transitioning to "', { searchExports: true })
+const transitionTo = getByStrings('transitionTo - Transitioning to', { searchExports: true })
 
 const sidebar = getModule(m => m?.render?.toString()?.includes('.CHANNEL'))
 const header = getByStrings('.HEADER_BAR)', { defaultExport: false })
