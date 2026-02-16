@@ -2,19 +2,19 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them and/or removing dashes/underscores
- * @version 1.7.3
+ * @version 1.8.0
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
  * @updateUrl https://raw.githubusercontent.com/Break-Ben/BetterDiscordAddons/main/BetterChatNames/BetterChatNames.plugin.js
  */
 
-const settings = {
+const defaultSettings = {
     capitalise: true,
     removeDashes: true,
     removeEmojis: false,
-    patchUnrestrictedChannels: true // Change the names of channels that can already contain capitals and spaces (e.g. voice channels, threads, and stages)
-}   // ↑ ↑ ↑ ↑ Settings ↑ ↑ ↑ ↑
+    patchUnrestricted: true
+}
 
 const unrestrictedChannels = {
     voice: 2,
@@ -28,7 +28,7 @@ const regex = {
 }
 
 let titleObserver
-const { Webpack, Patcher, Utils } = new BdApi('BetterChatNames')
+const { Webpack, Patcher, Utils, Data, UI } = new BdApi('BetterChatNames')
 const { getModule, getByStrings, getByKeys, getByPrototypeKeys } = Webpack
 const { findInTree } = Utils
 const searchOptions = { walkable: ['children', 'props'] } // For Utils.findInTree
@@ -44,6 +44,7 @@ const mention = getByStrings('channelWithIcon', { defaultExport: false })
 
 module.exports = class BetterChatNames {
     start() {
+        this.settings = Object.assign({}, defaultSettings, Data.load('settings'))
         this.observeAppTitle()
         this.patchNames()
         this.refreshChannel()
@@ -54,6 +55,41 @@ module.exports = class BetterChatNames {
         Patcher.unpatchAll()
         this.refreshChannel()
     }
+
+    getSettingsPanel = () => UI.buildSettingsPanel({
+        settings: [
+            {
+                id: 'capitalise',
+                name: 'Capitalise Words',
+                type: 'switch',
+                value: this.settings.capitalise
+            },
+            {
+                id: 'removeDashes',
+                name: 'Remove Dashes',
+                type: 'switch',
+                value: this.settings.removeDashes
+            },
+            {
+                id: 'removeEmojis',
+                name: 'Remove Emojis',
+                type: 'switch',
+                value: this.settings.removeEmojis
+            },
+            {
+                id: 'patchUnrestricted',
+                name: 'Patch Unrestricted Channels',
+                note: 'Change the names of channels that can already contain capital letters and spaces (e.g. voice channels, threads, and stages).',
+                type: 'switch',
+                value: this.settings.patchUnrestricted
+            }
+        ],
+        onChange: (_, id, value) => {
+            this.settings[id] = value
+            Data.save('settings', this.settings)
+            this.refreshChannel()
+        }
+    })
 
     observeAppTitle() {
         let lastUnpatchedAppTitle
@@ -85,7 +121,7 @@ module.exports = class BetterChatNames {
             const channelName = findInTree(data, prop => prop?.name, searchOptions)
             const channelType = findInTree(data, prop => prop?.channel, searchOptions).channel.type
 
-            if (!Object.values(unrestrictedChannels).includes(channelType) || settings.patchUnrestrictedChannels) // If not a voice/stage channel or patchUnrestrictedChannels is enabled
+            if (!Object.values(unrestrictedChannels).includes(channelType) || this.settings.patchUnrestricted) // If not a voice/stage channel or patchUnrestricted is enabled
                 channelName.name = this.patchText(channelName.name)
         })
     }
@@ -100,7 +136,7 @@ module.exports = class BetterChatNames {
                 rootChannel.children.props.children[2] = this.patchText(rootChannel.children.props.children[2])
             else if (rootChannel.level == 2) { // If in thread
                 rootChannel.children = this.patchText(rootChannel.children)
-                if (settings.patchUnrestrictedChannels) {
+                if (this.settings.patchUnrestricted) {
                     const threadName = findInTree(data, prop => Array.isArray(prop) && prop[1] == ' ', searchOptions)
                     threadName[2] = this.patchText(threadName[2])
                 }
@@ -112,7 +148,7 @@ module.exports = class BetterChatNames {
         Patcher.after(placeholder, 'render', (_, __, data) => {
             const textArea = findInTree(data, prop => prop.channel, searchOptions)
 
-            if (textArea.channel.guild_id && (textArea.channel.type != unrestrictedChannels.thread || settings.patchUnrestrictedChannels) && !textArea.disabled && textArea.type.analyticsName == 'normal') // If in a server, not in a thread (or patchUnrestrictedChannels is enabled), can message and not editing a message
+            if (textArea.channel.guild_id && (textArea.channel.type != unrestrictedChannels.thread || this.settings.patchUnrestricted) && !textArea.disabled && textArea.type.analyticsName == 'normal') // If in a server, not in a thread (or patchUnrestricted is enabled), can message and not editing a message
                 textArea.placeholder = this.patchText(textArea.placeholder)
         })
     }
@@ -121,15 +157,15 @@ module.exports = class BetterChatNames {
         Patcher.after(mention, 'A', (_, __, data) => {
             const channelName = findInTree(data, prop => typeof prop.children == 'string', searchOptions)
 
-            if (data.props.className.includes('iconMentionText') || settings.patchUnrestrictedChannels) // If is a normal chat mention (not a thread) or patchUnrestrictedChannels is enabled
+            if (data.props.className.includes('iconMentionText') || this.settings.patchUnrestricted) // If is a normal chat mention (not a thread) or patchUnrestricted is enabled
                 channelName.children = this.patchText(channelName.children)
         })
     }
 
     patchText(text) {
-        if (settings.removeEmojis) text = text.replace(regex.emoji, '')
-        if (settings.removeDashes) text = text.replace(regex.dash, ' ')
-        if (settings.capitalise) text = text.replace(regex.capital, letter => letter.toUpperCase())
+        if (this.settings.removeEmojis) text = text.replace(regex.emoji, '')
+        if (this.settings.removeDashes) text = text.replace(regex.dash, ' ')
+        if (this.settings.capitalise) text = text.replace(regex.capital, letter => letter.toUpperCase())
         return text
     }
 
