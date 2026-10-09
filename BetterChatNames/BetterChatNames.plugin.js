@@ -2,11 +2,12 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them and/or removing dashes/underscores
- * @version 1.9.1
+ * @version 1.9.2
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
  * @updateUrl https://raw.githubusercontent.com/Break-Ben/BetterDiscordAddons/main/BetterChatNames/BetterChatNames.plugin.js
+ * @runAt idle
  */
 
 const defaultSettings = {
@@ -32,15 +33,15 @@ const debounceTimeMs = 1000
 
 const searchOptions = { walkable: ['children', 'props'] } // For Utils.findInTree
 const { Webpack, Patcher, Utils, Data, UI } = new BdApi('BetterChatNames')
-const { waitForModule, getByStrings, getByKeys, getByPrototypeKeys } = Webpack
+const { getByStrings, getByKeys, getByPrototypeKeys } = Webpack
 const { findInTree } = Utils
 const modules = {}
 let titleObserver
 
 module.exports = class BetterChatNames {
-    async start() {
+    start() {
         this.settings = Object.assign({}, defaultSettings, Data.load('settings'))
-        await this.getModules()
+        this.getModules()
 
         this.updateOverrideMap()
         this.observeAppTitle()
@@ -49,7 +50,7 @@ module.exports = class BetterChatNames {
     }
 
     stop() {
-        titleObserver.disconnect()
+        titleObserver?.disconnect()
         Patcher.unpatchAll()
         this.refreshChannel()
     }
@@ -109,12 +110,12 @@ module.exports = class BetterChatNames {
         }
     })
 
-    async getModules() {
+    getModules() {
         modules.currentServer = getByKeys('getLastSelectedGuildId')
         modules.currentChannel = getByKeys('getLastSelectedChannelId')
         modules.transitionTo = getByStrings('transitionTo - Transitioning to', { searchExports: true })
 
-        modules.sidebar = await waitForModule(m => m?.render?.toString()?.includes('.CHANNEL'))
+        modules.sidebar = getByStrings('channel_item', { defaultExport: false })
         modules.header = getByStrings('.HEADER_BAR)', { defaultExport: false })
         modules.placeholder = getByPrototypeKeys('getPlaceholder').prototype
         modules.mention = getByStrings('channelWithIcon', { defaultExport: false })
@@ -146,9 +147,9 @@ module.exports = class BetterChatNames {
     }
 
     patchSidebar() {
-        Patcher.after(modules.sidebar, 'render', (_, __, data) => {
+        Patcher.after(modules.sidebar, 'Ay', (_, __, data) => {
             const channelName = findInTree(data, prop => prop?.name, searchOptions)
-            const channelType = findInTree(data, prop => prop?.channel, searchOptions).channel.type
+            const channelType = findInTree(data, prop => prop?.channel, searchOptions)?.channel?.type
 
             if (!Object.values(unrestrictedChannels).includes(channelType) || this.settings.patchUnrestricted) // If not a voice/stage channel or patchUnrestricted is enabled
                 channelName.name = this.patchText(channelName.name)
