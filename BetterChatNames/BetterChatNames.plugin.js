@@ -2,12 +2,11 @@
  * @name BetterChatNames
  * @author Break
  * @description Improves chat names by automatically capitalising them and/or removing dashes/underscores
- * @version 1.9.2
+ * @version 1.9.3
  * @authorLink https://github.com/Break-Ben
  * @website https://github.com/Break-Ben/BetterDiscordAddons
  * @source https://github.com/Break-Ben/BetterDiscordAddons/tree/main/BetterChatNames
  * @updateUrl https://raw.githubusercontent.com/Break-Ben/BetterDiscordAddons/main/BetterChatNames/BetterChatNames.plugin.js
- * @runAt idle
  */
 
 const defaultSettings = {
@@ -33,15 +32,15 @@ const debounceTimeMs = 1000
 
 const searchOptions = { walkable: ['children', 'props'] } // For Utils.findInTree
 const { Webpack, Patcher, Utils, Data, UI } = new BdApi('BetterChatNames')
-const { getByStrings, getByKeys, getByPrototypeKeys } = Webpack
+const { Filters, waitForModule, getByStrings, getByKeys, getByPrototypeKeys } = Webpack
 const { findInTree } = Utils
 const modules = {}
 let titleObserver
 
 module.exports = class BetterChatNames {
-    start() {
+    async start() {
         this.settings = Object.assign({}, defaultSettings, Data.load('settings'))
-        this.getModules()
+        await this.getModules()
 
         this.updateOverrideMap()
         this.observeAppTitle()
@@ -110,14 +109,14 @@ module.exports = class BetterChatNames {
         }
     })
 
-    getModules() {
+    async getModules() {
         modules.currentServer = getByKeys('getLastSelectedGuildId')
         modules.currentChannel = getByKeys('getLastSelectedChannelId')
         modules.transitionTo = getByStrings('transitionTo - Transitioning to', { searchExports: true })
 
-        modules.sidebar = getByStrings('channel_item', { defaultExport: false })
+        modules.sidebar = await waitForModule(Filters.byStrings('channel_item'), { defaultExport: false })
         modules.header = getByStrings('.HEADER_BAR)', { defaultExport: false })
-        modules.placeholder = getByPrototypeKeys('getPlaceholder').prototype
+        modules.placeholder = getByPrototypeKeys('getPlaceholder')?.prototype
         modules.mention = getByStrings('channelWithIcon', { defaultExport: false })
     }
 
